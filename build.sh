@@ -1,13 +1,11 @@
 #!/bin/bash
 
-lr_version=$1
-lr_edition=$2
-lr_release_label=$3
-server_port=$4
-instance=$5
-deployment_type=$6
+target_server_user=$1
+target_server=$2
+target_server_port=$3
 
 . ./build-conf.sh
+. ./deploy-conf.sh
 
 . ./scripts/misc-functions.sh
 
@@ -54,10 +52,10 @@ if stringMatches "$lr_version" "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+";then
 		cd ../../
 	fi
 
-        echo "Building EXT"
 	ext_plugin=$(firstFile "ext" "^[[:digit:][:alpha:]-]+-ext$")
 	if [[ ! -z $ext_plugin ]];then
 		cd ext/$ext_plugin
+		echo "Building EXT"
 		ant clean direct-deploy
 		antReturnCode=$?
 		if [ $antReturnCode -ne 0 ];then
@@ -83,14 +81,14 @@ if stringMatches "$lr_version" "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+";then
 	target_liferay_dir=${target_liferay_dir}/liferay-${value}
 
 	if [[ $deployment_type == "plugins" ]];then
-        	scp -r -P $server_port ./liferay-portal/deploy/* ${target_server_user}@${target_server}:${target_liferay_dir}/deploy
+        	scp -r -P $target_server_port ./liferay-portal/deploy/* ${target_server_user}@${target_server}:${target_liferay_dir}/deploy
 
 	elif [[ $deployment_type == "ext" ]];then
 		tomcat_dir=$(firstFile "liferay-portal" "^tomcat-[[:digit:][:alpha:]\-\.]+$")
 	        if [[ ! -z $tomcat_dir ]];then
-			ssh ${target_server_user}@${target_server} -p $server_port "${target_liferay_dir}/${tomcat_dir}/bin/shutdown.sh -force; rm -rf ${target_liferay_dir}/${tomcat_dir}/work/* ${target_liferay_dir}/${tomcat_dir}/temp/*"
-		        scp -r -P $server_port ./liferay-portal/* ${target_server_user}@${target_server}:${target_liferay_dir}
-        		ssh ${target_server_user}@${target_server} -p $server_port "${target_liferay_dir}/${tomcat_dir}/bin/startup.sh"
+			ssh ${target_server_user}@${target_server} -p $target_server_port "${target_liferay_dir}/${tomcat_dir}/bin/shutdown.sh -force; rm -rf ${target_liferay_dir}/${tomcat_dir}/work/* ${target_liferay_dir}/${tomcat_dir}/temp/*"
+		        scp -r -P $target_server_port ./liferay-portal/* ${target_server_user}@${target_server}:${target_liferay_dir}
+        		ssh ${target_server_user}@${target_server} -p $target_server_port "${target_liferay_dir}/${tomcat_dir}/bin/startup.sh"
 		else
 			echo "Unable to find the tomcat directory inside \"liferay-portal\"."
 		fi
